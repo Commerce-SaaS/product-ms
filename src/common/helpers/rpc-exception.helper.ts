@@ -1,0 +1,36 @@
+import { HttpStatus } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+
+export class RpcExceptionHelper {
+  static handle(error: any): never {
+    if (error instanceof RpcException) {
+      throw error;
+    }
+
+    if (error.code === '23505') {
+      throw new RpcException({
+        message: 'Duplicate entry: product already exists',
+        statusCode: HttpStatus.CONFLICT,
+      });
+    }
+
+    throw new RpcException({
+      message: error.detail || error.message || 'Internal server error',
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+  }
+
+  static duplicate(entity: string): never {
+    throw new RpcException({
+      message: `Duplicate entry: ${entity} already exists`,
+      statusCode: HttpStatus.CONFLICT,
+    });
+  }
+
+  static notFound(entity: string): never {
+    throw new RpcException({
+      message: `${entity} not found`,
+      statusCode: HttpStatus.NOT_FOUND,
+    });
+  }
+}

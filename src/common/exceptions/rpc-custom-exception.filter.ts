@@ -10,17 +10,30 @@ export class RpcCustomExceptionFilter implements ExceptionFilter {
 
     const rpcError = exception.getError();
 
+    if ( rpcError.toString().includes('Empty response') ) {
+      return response.status(500).json({
+        status: 500,
+        message: rpcError.toString().substring(0, rpcError.toString().indexOf('(') - 1)
+      })
+    }
+
+
+
     if (
       typeof rpcError === 'object' &&
-      rpcError !== null &&
       'status' in rpcError &&
       'message' in rpcError
     ) {
-      const { status, message } = rpcError as { status: unknown; message: unknown };
-      const statusCode = typeof status === 'number' ? status : isNaN(Number(status)) ? 400 : Number(status);
-      return response.status(statusCode).json({ status: statusCode, message });
+      const statusValue = (rpcError as { status?: unknown }).status;
+      const status =
+        typeof statusValue === 'number'
+          ? statusValue
+          : typeof statusValue === 'string' && !isNaN(+statusValue)
+          ? +statusValue
+          : 400;
+      return response.status(status).json(rpcError);
     }
-
+    console.error('Unhandled RPC Exception:', rpcError);
     response.status(400).json({
       status: 400,
       message: rpcError,

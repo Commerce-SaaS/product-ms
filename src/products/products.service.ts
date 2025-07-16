@@ -5,7 +5,10 @@ import { NATS_SERVICE } from 'src/config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { Category } from 'src/categories/entities/category.entity';
+import { Tag } from 'src/tags/entities/tag.entity';
 
 @Injectable()
 export class ProductsService {
@@ -13,45 +16,71 @@ export class ProductsService {
     @Inject(NATS_SERVICE) private readonly client: ClientProxy,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Tag)
+    private readonly tagsRepository: Repository<Tag>,
   ) {}
 
   async create(createProductDto: CreateProductDto) {
-    const { name, restaurantId } = createProductDto;
+    const { name, restaurantId, category, tags, ...rest } = createProductDto;
     try {
       // Validate if the product already exists
       const existingProduct = await this.productRepository.findOne({
-        where: 
-        { 
-          name, 
+        where: {
+          name,
           restaurantId,
         },
       });
 
       if (existingProduct) {
-        throw new RpcException({
-          message: 'Product already exists',
-          status: HttpStatus.CONFLICT, //409
-        });
+        RpcExceptionHelper.duplicate('Product');
       }
 
-      // Validate if the restaurant exists
-
       // Validate if the category exists
+      const existingCategory = await this.categoryRepository.findOne({
+        where: { id: createProductDto.category },
+      });
+
+      if (!existingCategory) {
+        RpcExceptionHelper.notFound('Category');
+      }
 
       // Validate if tags, ingredients, and extras exist
+      if (tags && tags.length > 0) {
+        const existingTags = await this.tagsRepository.find({
+          where: { id: In(tags) },
+        });
 
-      // Convert category string to Category entity reference if necessary
-      const { category, ...rest } = createProductDto;
+        const existingIds = existingTags.map((tag) => tag.id);
+        const missingTags = tags.filter(
+          (tagId) => !existingIds.includes(tagId),
+        );
+
+        if (missingTags.length > 0) {
+          RpcExceptionHelper.notFound(
+            `Tag(s) not found: ${missingTags.join(', ')}`,
+          );
+        }
+      }
+
+      // Validate if the ingredients exist
+
+      // Validate if the extras exist
+      
+      // Prepare the product to be saved
+
       const productToSave: any = {
         ...rest,
-        category: category ? { id: category } : undefined, // assumes category is an ID
+        name,
+        restaurantId,
+        category: category ? { id: category } : undefined,
+        tags: tags ? tags.map((tag) => ({ id: tag })) : [],
       };
 
       return await this.productRepository.save(productToSave);
     } catch (error) {
-      console.log('Error creating product:', error);
-      // If the product already exists, throw an error
-      this.handleExceptions(error);
+      RpcExceptionHelper.handle(error);
     }
   }
 
@@ -69,19 +98,5 @@ export class ProductsService {
 
   remove(id: number) {
     return `This action removes a #${id} product`;
-  }
-
-  private handleExceptions(error: any) {
-    if (error.code === '23505') {
-      throw new RpcException({
-        message: 'Duplicate entry: product already exists',
-        status: HttpStatus.CONFLICT,
-      });
-    }
-
-    throw new RpcException({
-      message: error.detail || 'Internal server error',
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
-    });
   }
 }

@@ -1,4 +1,5 @@
 import { Category } from 'src/categories/entities/category.entity';
+import { Tag } from 'src/tags/entities/tag.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -39,13 +40,13 @@ export class Product {
   @ManyToOne(() => Category, { nullable: true, eager: true })
   category?: Category;
 
-//   @ManyToMany(() => Tag, { eager: true })
-//   @JoinTable({
-//     name: 'product_tags',
-//     joinColumn: { name: 'productId', referencedColumnName: 'id' },
-//     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
-//   })
-//   tags?: Tag[];
+  @ManyToMany(() => Tag, { eager: true })
+  @JoinTable({
+    name: 'product_tags',
+    joinColumn: { name: 'productId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags?: Tag[];
 
 //   @ManyToMany(() => Ingredient, { eager: true })
 //   @JoinTable({
