@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { envs } from './config';
 import { IngredientsModule } from './ingredients/ingredients.module';
+import { ExtrasModule } from './extras/extras.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { IngredientsModule } from './ingredients/ingredients.module';
     CategoriesModule,
     TagsModule,
     IngredientsModule,
+    ExtrasModule,
   ],
   controllers: [],
   providers: [],

@@ -1,8 +1,11 @@
+import { Extra } from 'src/extras/entities/extra.entity';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -25,6 +28,14 @@ export class Category {
   // 🔗 Relaciones
   @OneToMany(() => Product, (product) => product.category)
   products?: Product[];
+
+  @ManyToMany(() => Extra, (extra) => extra.categories, { eager: true })
+  @JoinTable({
+    name: 'category_extras',
+    joinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'extraId', referencedColumnName: 'id' },
+  })
+  extras?: Extra[];
 
   @CreateDateColumn()
   createdAt: Date;
