@@ -5,6 +5,7 @@ import { TagsModule } from './tags/tags.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { envs } from './config';
+import { IngredientsModule } from './ingredients/ingredients.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { envs } from './config';
     ProductsModule,
     CategoriesModule,
     TagsModule,
+    IngredientsModule,
   ],
   controllers: [],
   providers: [],

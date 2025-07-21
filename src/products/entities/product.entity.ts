@@ -1,4 +1,5 @@
 import { Category } from 'src/categories/entities/category.entity';
+import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
 import {
   Entity,
@@ -48,21 +49,21 @@ export class Product {
   })
   tags?: Tag[];
 
-//   @ManyToMany(() => Ingredient, { eager: true })
-//   @JoinTable({
-//     name: 'product_ingredients',
-//     joinColumn: { name: 'productId', referencedColumnName: 'id' },
-//     inverseJoinColumn: { name: 'ingredientId', referencedColumnName: 'id' },
-//   })
-//   ingredients?: Ingredient[];
+  @ManyToMany(() => Ingredient, { eager: true })
+  @JoinTable({
+    name: 'product_ingredients',
+    joinColumn: { name: 'productId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'ingredientId', referencedColumnName: 'id' },
+  })
+  ingredients?: Ingredient[];
 
-//   @ManyToMany(() => Extra, { eager: true })
-//   @JoinTable({
-//     name: 'product_extras',
-//     joinColumn: { name: 'productId', referencedColumnName: 'id' },
-//     inverseJoinColumn: { name: 'extraId', referencedColumnName: 'id' },
-//   })
-//   extras?: Extra[];
+  //   @ManyToMany(() => Extra, { eager: true })
+  //   @JoinTable({
+  //     name: 'product_extras',
+  //     joinColumn: { name: 'productId', referencedColumnName: 'id' },
+  //     inverseJoinColumn: { name: 'extraId', referencedColumnName: 'id' },
+  //   })
+  //   extras?: Extra[];
 
   @CreateDateColumn()
   createdAt: Date;
