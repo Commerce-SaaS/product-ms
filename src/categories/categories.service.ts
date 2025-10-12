@@ -8,13 +8,15 @@ import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
 
 @Injectable()
 export class CategoriesService {
-  constructor(@InjectRepository(Category) private readonly categoryRepository: Repository<Category>
-) {}
+  constructor(
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+  ) {}
   async create(createCategoryDto: CreateCategoryDto) {
     const { name, restaurantId } = createCategoryDto;
     try {
       const existingCategory = await this.categoryRepository.findOne({
-        where: { name, restaurantId }
+        where: { name, restaurantId },
       });
 
       if (existingCategory) {
@@ -22,9 +24,8 @@ export class CategoriesService {
       }
       return await this.categoryRepository.save(createCategoryDto);
     } catch (error) {
-      RpcExceptionHelper.handle(error);  
+      RpcExceptionHelper.handle(error);
     }
-    
   }
 
   findAll() {

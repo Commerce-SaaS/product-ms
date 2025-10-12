@@ -1,4 +1,12 @@
-import { IsUUID, IsString, IsNumber, IsBoolean, IsOptional, IsArray } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  Min,
+} from 'class-validator';
 
 export class CreateExtraDto {
   @IsUUID()
@@ -7,8 +15,10 @@ export class CreateExtraDto {
   @IsString()
   name: string;
 
+  @IsOptional()
   @IsNumber()
-  price: number;
+  @Min(0)
+  price?: number = 0; 
 
   @IsOptional()
   @IsBoolean()

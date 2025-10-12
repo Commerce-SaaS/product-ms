@@ -17,7 +17,7 @@ export class Extra {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: number;
 
   @Column({ type: 'boolean', default: true })

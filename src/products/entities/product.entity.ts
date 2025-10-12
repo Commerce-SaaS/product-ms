@@ -1,5 +1,7 @@
 import { Category } from 'src/categories/entities/category.entity';
+import { ProductAvailability } from 'src/common/enums/product-availability.enum';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
+import { ProductIngredient } from 'src/product-ingredients/entities/product-ingredient.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
 import {
   Entity,
@@ -10,13 +12,12 @@ import {
   ManyToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
+  Index,
 } from 'typeorm';
-// import { Category } from './category.entity';
-// import { Tag } from './tag.entity';
-// import { Ingredient } from './ingredient.entity';
-// import { Extra } from './extra.entity';
 
 @Entity('products')
+@Index(['restaurantId', 'name'], { unique: true })
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -24,7 +25,7 @@ export class Product {
   @Column({ type: 'uuid' })
   restaurantId: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
@@ -33,8 +34,12 @@ export class Product {
   @Column({ type: 'int', nullable: true })
   stock?: number;
 
-  @Column({ type: 'boolean', default: true })
-  isAvailable: boolean;
+  @Column({
+    type: 'enum',
+    enum: ProductAvailability,
+    default: ProductAvailability.AVAILABLE,
+  })
+  availability: ProductAvailability;
 
   // 🔗 Relaciones
 
@@ -49,21 +54,11 @@ export class Product {
   })
   tags?: Tag[];
 
-  @ManyToMany(() => Ingredient, { eager: true })
-  @JoinTable({
-    name: 'product_ingredients',
-    joinColumn: { name: 'productId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'ingredientId', referencedColumnName: 'id' },
+  @OneToMany(() => ProductIngredient, (pi) => pi.product, {
+    eager: true,
+    cascade: true,
   })
-  ingredients?: Ingredient[];
-
-  //   @ManyToMany(() => Extra, { eager: true })
-  //   @JoinTable({
-  //     name: 'product_extras',
-  //     joinColumn: { name: 'productId', referencedColumnName: 'id' },
-  //     inverseJoinColumn: { name: 'extraId', referencedColumnName: 'id' },
-  //   })
-  //   extras?: Extra[];
+  ingredients: ProductIngredient[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -15,11 +15,11 @@ export class ProductsController {
 
   @MessagePattern('findAllProducts')
   findAll() {
-    return 'Todos los productos';
+    return this.productsService.findAll();
   }
 
   @MessagePattern('findOneProduct')
-  findOne(@Payload() id: number) {
+  findOne(@Payload() id: string) {
     return this.productsService.findOne(id);
   }
 

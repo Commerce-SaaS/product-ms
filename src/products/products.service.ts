@@ -1,7 +1,7 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { NATS_SERVICE } from 'src/config';
+import { RMQ_SERVICE } from 'src/config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
@@ -9,11 +9,14 @@ import { In, Repository } from 'typeorm';
 import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
 import { Category } from 'src/categories/entities/category.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
+import { ProductResponseDto } from './dto/product-response.dto';
 
 @Injectable()
 export class ProductsService {
+  logger = new Logger(ProductsService.name);
+
   constructor(
-    @Inject(NATS_SERVICE) private readonly client: ClientProxy,
+    @Inject(RMQ_SERVICE) private readonly client: ClientProxy,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     @InjectRepository(Category)
@@ -22,8 +25,8 @@ export class ProductsService {
     private readonly tagsRepository: Repository<Tag>,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
-    const { name, restaurantId, category, tags, ...rest } = createProductDto;
+  async create(createProductDto: CreateProductDto): Promise<ProductResponseDto> {
+    const { name, category, restaurantId, tags, ingredients, ...rest } = createProductDto;
     try {
       // Validate if the product already exists
       const existingProduct = await this.productRepository.findOne({
@@ -65,9 +68,8 @@ export class ProductsService {
       }
 
       // Validate if the ingredients exist
+      //TODO
 
-      // Validate if the extras exist
-      
       // Prepare the product to be saved
 
       const productToSave: any = {
@@ -76,20 +78,40 @@ export class ProductsService {
         restaurantId,
         category: category ? { id: category } : undefined,
         tags: tags ? tags.map((tag) => ({ id: tag })) : [],
+        ingredients: ingredients ? ingredients.map((ingredient) => ({ id: ingredient })) : []
       };
+      const product = await this.productRepository.save(productToSave);
+      this.logger.log(`Product created: ${product.name}`);
+      return this.findOne(product.id);
 
-      return await this.productRepository.save(productToSave);
     } catch (error) {
       RpcExceptionHelper.handle(error);
     }
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll() {
+    const products = await this.productRepository.find({
+      relations: ['category', 'tags', 'ingredients'],
+    });
+    if (!products || products.length === 0) {
+      RpcExceptionHelper.notFound('Products');
+    }
+
+    return products.map((product) => (
+      this.transformProductStructure(product))
+    );
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: string): Promise<ProductResponseDto> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+    });
+
+    if (!product) {
+      RpcExceptionHelper.notFound('Product');
+    }
+
+    return this.transformProductStructure(product);
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
@@ -98,5 +120,36 @@ export class ProductsService {
 
   remove(id: number) {
     return `This action removes a #${id} product`;
+  }
+
+  transformProductStructure(product: Product): ProductResponseDto {
+    console.log('Transforming product structure:', product);
+    return {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      availability: product.availability,
+      stock: product.stock,
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+            description: product.category.description ?? '',
+          }
+        : null,
+      ingredients: product.ingredients.map((pi) => ({
+        id: pi.ingredient.id,
+        name: pi.ingredient.name,
+        quantity: pi.quantity,
+      })),
+      tags: product.tags
+        ? product.tags.map((t) => ({
+            id: t.id,
+            name: t.name,
+          }))
+        : [],
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    };
   }
 }

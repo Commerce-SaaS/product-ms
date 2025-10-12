@@ -2,8 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { CreateIngredientDto } from './dto/create-ingredient.dto';
 import { UpdateIngredientDto } from './dto/update-ingredient.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { create } from 'domain';
-import { number } from 'zod';
 import { Ingredient } from './entities/ingredient.entity';
 import { Repository } from 'typeorm';
 import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
