@@ -7,13 +7,14 @@ import {
   IsArray,
   Length,
   IsEnum,
+  IsObject,
 } from 'class-validator';
 import { ProductAvailability } from 'src/common/enums/product-availability.enum';
 
 export class CreateProductDto {
   @IsUUID()
-  restaurantId: string;
-  
+  organizationId: string;
+
   @IsString()
   @Length(1, 100)
   name: string;
@@ -31,6 +32,18 @@ export class CreateProductDto {
   @IsEnum(ProductAvailability)
   availability?: ProductAvailability;
 
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imageKey?: string;
+
   //Relationships
   @IsUUID()
   @IsOptional()
@@ -44,6 +57,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsArray()
   @IsUUID('all', { each: true })
-  ingredients?: string[];
-}
+  extras?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  ingredients?: { ingredientId: string; quantity: number }[];
+}

@@ -4,47 +4,41 @@ import { UpdateIngredientDto } from './dto/update-ingredient.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Ingredient } from './entities/ingredient.entity';
 import { Repository } from 'typeorm';
-import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { PaginationDto } from 'src/common';
+import { BaseService } from 'src/common/services/base.service';
+import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
 
 @Injectable()
-export class IngredientsService {
+export class IngredientsService extends BaseService<Ingredient> {
+
   constructor(
     @InjectRepository(Ingredient)
-    private ingredientRepository: Repository<Ingredient>,
-  ) {}
-
-  async create(createIngredientDto: CreateIngredientDto) {
-    const { name, restaurantId } = createIngredientDto;
-    try {
-      const existingIngredient = await this.ingredientRepository.findOne({
-        where: {
-          name,
-          restaurantId,
-        },
-      });
-      if (existingIngredient) {
-        RpcExceptionHelper.duplicate('Ingredient');
-      }
-
-      return await this.ingredientRepository.save(createIngredientDto);
-    } catch (error) {
-      RpcExceptionHelper.handle(error);
-    }
+    repo: Repository<Ingredient>,
+  ) {
+    super(repo, 'Ingredient');
   }
 
-  findAll() {
-    return `This action returns all ingredients`;
+  create(createDto: CreateIngredientDto) {
+    return super.create(createDto);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} ingredient`;
+  findAll(paginationDto: PaginationDto) {
+    return super.findAllByOrg(paginationDto);
   }
 
-  update(id: number, updateIngredientDto: UpdateIngredientDto) {
-    return `This action updates a #${id} ingredient`;
+  findOne(data: FindOneByOrgDto) {
+    return super.findOneByOrg(data);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} ingredient`;
+  update(dto: UpdateIngredientDto) {
+    return super.updateByOrg(dto);
+  }
+
+  remove(data: FindOneByOrgDto) {
+    return super.softDeleteByOrg(data);
+  }
+
+    restore(data: FindOneByOrgDto) {
+    return super.restoreByOrg(data);
   }
 }

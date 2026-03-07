@@ -2,10 +2,10 @@ import { IsUUID, IsInt, Min } from "class-validator";
 
 export class CreateProductIngredientDto {
   @IsUUID()
-  restaurantId: string;
+  organizationId?: string;
   
   @IsUUID()
-  productId: string;
+  productId?: string;
 
   @IsUUID()
   ingredientId: string;

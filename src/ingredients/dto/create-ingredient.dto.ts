@@ -1,8 +1,8 @@
-import { IsUUID, IsString, Length } from "class-validator";
+import { IsUUID, IsString, Length } from 'class-validator';
 
 export class CreateIngredientDto {
   @IsUUID()
-  restaurantId: string;
+  organizationId: string;
 
   @IsString()
   @Length(1, 100)

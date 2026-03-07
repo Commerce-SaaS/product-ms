@@ -15,15 +15,23 @@ export class TagResponseDto {
   name: string;
 }
 
+export class ProductExtraResponseDto {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export class ProductResponseDto {
   id: string;
   name: string;
   price: number;
+  isActive: boolean;
+  image: { url: string | null; key: string | null };
   availability: string;
   stock?: number | null;
+  description?: string | null;
   category: CategoryResponseDto | null;
   ingredients: ProductIngredientResponseDto[];
   tags: TagResponseDto[];
-  createdAt: Date;
-  updatedAt: Date;
+  extras: ProductExtraResponseDto[];
 }

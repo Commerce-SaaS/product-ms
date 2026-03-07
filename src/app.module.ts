@@ -9,6 +9,8 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { ExtrasModule } from './extras/extras.module';
 import { ProductIngredientsModule } from './product-ingredients/product-ingredients.module';
 import { RedisModule } from './redis/redis.module';
+import { ProductExtrasModule } from './product-extras/product-extras.module';
+import { ProductTagsModule } from './product-tags/product-tags.module';
 
 @Module({
   imports: [
@@ -29,8 +31,10 @@ import { RedisModule } from './redis/redis.module';
     IngredientsModule,
     ExtrasModule,
     ProductIngredientsModule,
-    RedisModule
-  ],
+    RedisModule,
+    ProductExtrasModule,
+    ProductTagsModule,
+    ],
   controllers: [],
   providers: [],
 })

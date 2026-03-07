@@ -7,24 +7,27 @@ import {
   PrimaryGeneratedColumn,
   Unique,
   JoinColumn,
+  CreateDateColumn,
+  DeleteDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: 'product_ingredients' })
-@Unique(['productId', 'ingredientId', 'restaurantId'])
+@Unique(['productId', 'ingredientId', 'organizationId'])
 export class ProductIngredient {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid' })
-  restaurantId: string;
+  organizationId: string;
 
-  @Column({ type: 'uuid' }) // 👈 DEBES declarar esto explícitamente
+  @Column({ type: 'uuid' })
   productId: string;
 
   @ManyToOne(() => Product, (product) => product.ingredients, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'productId' }) // 👈 este join se enlaza con la columna declarada arriba
+  @JoinColumn({ name: 'productId' })
   product: Product;
 
   @Column({ type: 'uuid' }) // 👈 igual aquí
@@ -36,4 +39,16 @@ export class ProductIngredient {
 
   @Column({ type: 'int', default: 1 })
   quantity: number;
+
+  @Column({ type: 'boolean', default: true })
+  isActive?: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

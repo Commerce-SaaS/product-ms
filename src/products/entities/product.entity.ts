@@ -1,29 +1,29 @@
 import { Category } from 'src/categories/entities/category.entity';
 import { ProductAvailability } from 'src/common/enums/product-availability.enum';
-import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
+import { ProductExtra } from 'src/product-extras/entities/product-extra.entity';
 import { ProductIngredient } from 'src/product-ingredients/entities/product-ingredient.entity';
+import { ProductTag } from 'src/product-tags/entities/product-tag.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  JoinTable,
-  ManyToMany,
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
   Index,
+  DeleteDateColumn,
 } from 'typeorm';
 
 @Entity('products')
-@Index(['restaurantId', 'name'], { unique: true })
+@Index(['organizationId', 'name'], { unique: true })
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid' })
-  restaurantId: string;
+  organizationId: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
@@ -34,6 +34,12 @@ export class Product {
   @Column({ type: 'int', nullable: true })
   stock?: number;
 
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @Column({
     type: 'enum',
     enum: ProductAvailability,
@@ -41,18 +47,20 @@ export class Product {
   })
   availability: ProductAvailability;
 
-  // 🔗 Relaciones
+  @Column({ type: 'text', nullable: true })
+  imageUrl?: string;
+
+  @Column({ type: 'text', nullable: true })
+  imageKey?: string;
 
   @ManyToOne(() => Category, { nullable: true, eager: true })
   category?: Category;
 
-  @ManyToMany(() => Tag, { eager: true })
-  @JoinTable({
-    name: 'product_tags',
-    joinColumn: { name: 'productId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  @OneToMany(() => ProductTag, (pt) => pt.product, {
+    eager: true,
+    cascade: true,
   })
-  tags?: Tag[];
+  tags: ProductTag[];
 
   @OneToMany(() => ProductIngredient, (pi) => pi.product, {
     eager: true,
@@ -60,9 +68,18 @@ export class Product {
   })
   ingredients: ProductIngredient[];
 
+  @OneToMany(() => ProductExtra, (pi) => pi.product, {
+    eager: true,
+    cascade: true,
+  })
+  extras: ProductExtra[];
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 }

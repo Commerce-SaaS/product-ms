@@ -1,9 +1,10 @@
-import { Category } from 'src/categories/entities/category.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  CreateDateColumn,
+  DeleteDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('extras')
@@ -12,7 +13,7 @@ export class Extra {
   id: string;
 
   @Column({ type: 'uuid' })
-  restaurantId: string;
+  organizationId: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
@@ -21,8 +22,14 @@ export class Extra {
   price: number;
 
   @Column({ type: 'boolean', default: true })
-  isAvailable: boolean;
+  isActive: boolean;
 
-  @ManyToMany(() => Category, (category) => category.extras)
-  categories?: Category[];
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

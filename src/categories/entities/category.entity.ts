@@ -1,11 +1,9 @@
-import { Extra } from 'src/extras/entities/extra.entity';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -17,7 +15,7 @@ export class Category {
   id: string;
 
   @Column({ type: 'uuid' })
-  restaurantId: string;
+  organizationId: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
   name: string;
@@ -25,21 +23,18 @@ export class Category {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  // 🔗 Relaciones
   @OneToMany(() => Product, (product) => product.category)
   products?: Product[];
 
-  @ManyToMany(() => Extra, (extra) => extra.categories, { eager: true })
-  @JoinTable({
-    name: 'category_extras',
-    joinColumn: { name: 'categoryId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'extraId', referencedColumnName: 'id' },
-  })
-  extras?: Extra[];
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

@@ -4,11 +4,10 @@ import { IngredientsController } from './ingredients.controller';
 
 import { Ingredient } from './entities/ingredient.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RabbitMQModule } from 'src/transports/rabbitmq.module';
 
 @Module({
   controllers: [IngredientsController],
   providers: [IngredientsService],
-  imports: [RabbitMQModule, TypeOrmModule.forFeature([Ingredient])],
+  imports: [TypeOrmModule.forFeature([Ingredient])],
 })
 export class IngredientsModule {}

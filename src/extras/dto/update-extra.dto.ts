@@ -1,6 +1,11 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateExtraDto } from './create-extra.dto';
+import { IsString, IsUUID } from 'class-validator';
 
 export class UpdateExtraDto extends PartialType(CreateExtraDto) {
-  id: number;
+  @IsUUID()
+  organizationId: string;
+
+  @IsString()
+  id: string;
 }

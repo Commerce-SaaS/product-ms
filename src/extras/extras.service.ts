@@ -2,49 +2,41 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateExtraDto } from './dto/create-extra.dto';
 import { UpdateExtraDto } from './dto/update-extra.dto';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Extra } from './entities/extra.entity';
-import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { PaginationDto } from 'src/common';
+import { BaseService } from 'src/common/services/base.service';
+import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
 
 @Injectable()
-export class ExtrasService {
+export class ExtrasService extends BaseService<Extra> {
   constructor(
     @InjectRepository(Extra)
-    private readonly extraRepository: Repository<Extra>,
-  ) {}
-  async create(createExtraDto: CreateExtraDto) {
-
-    // Verify if an extra with the same name exists for the same restaurant
-    const { name, restaurantId } = createExtraDto;
-
-    
-    try {
-      const existingExtra = await this.extraRepository.findOne({
-        where: { name: ILike(name), restaurantId },
-      });
-
-      if (existingExtra) {
-        RpcExceptionHelper.duplicate('Extra');
-      }
-      return await this.extraRepository.save(createExtraDto);
-    } catch (error) {
-      RpcExceptionHelper.handle(error);
-    }
+    repo: Repository<Extra>,
+  ) {
+    super(repo, 'Extra');
+  }
+  create(createDto: CreateExtraDto) {
+    return super.create(createDto);
   }
 
-  findAll() {
-    return `This action returns all extras`;
+  findAll(paginationDto: PaginationDto) {
+    return super.findAllByOrg(paginationDto);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} extra`;
+  findOne(data: FindOneByOrgDto) {
+    return super.findOneByOrg(data);
   }
 
-  update(id: number, updateExtraDto: UpdateExtraDto) {
-    return `This action updates a #${id} extra`;
+  update(dto: UpdateExtraDto) {
+    return super.updateByOrg(dto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} extra`;
+  softDelete(data: FindOneByOrgDto) {
+    return super.softDeleteByOrg(data);
+  }
+
+  restore(data: FindOneByOrgDto) {
+    return super.restoreByOrg(data);
   }
 }
