@@ -1,68 +1,43 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tag } from './entities/tag.entity';
-import { RpcException } from '@nestjs/microservices';
-import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { PaginationDto } from 'src/common';
+import { BaseService } from 'src/common/services/base.service';
+import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
 
 @Injectable()
-export class TagsService {
+export class TagsService extends BaseService<Tag> {
   constructor(
-    @InjectRepository(Tag) private readonly tagRepository: Repository<Tag>,
-  ) {}
-
-  async create(createTagDto: CreateTagDto) {
-    const { name, categoryId, restaurantId } = createTagDto;
-    try {
-      // Validate if the tag already exists
-      const existingTag = await this.tagRepository.findOne({
-        where: { name, restaurantId },
-      });
-
-      if (existingTag) {
-        RpcExceptionHelper.duplicate('Tag');
-      }
-
-      // Validate if the category exists
-      const existingCategory = await this.tagRepository.findOne({
-        where: { id: categoryId },
-      });
-
-      if (!existingCategory) {
-        RpcExceptionHelper.notFound('Category');
-      }
-
-      //
-
-      // Prepare the tag to be saved
-      const tagToSave: any = {
-        name,
-        restaurantId,
-        category: categoryId ? { id: categoryId } : undefined,
-      };
-
-      // Save the tag
-      return await this.tagRepository.save(tagToSave);
-    } catch (error) {
-      RpcExceptionHelper.handle(error);
-    }
+    @InjectRepository(Tag)
+    repo: Repository<Tag>,
+  ) {
+    super(repo, 'Tag');
   }
 
-  findAll() {
-    return `This action returns all tags`;
+  create(createDto: CreateTagDto) {
+    return super.create(createDto);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} tag`;
+  findAll(paginationDto: PaginationDto) {
+    return super.findAllByOrg(paginationDto);
   }
 
-  update(id: number, updateTagDto: UpdateTagDto) {
-    return `This action updates a #${id} tag`;
+  findOne(data: FindOneByOrgDto) {
+    return super.findOneByOrg(data);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} tag`;
+  update(dto: UpdateTagDto) {
+    return super.updateByOrg(dto);
+  }
+
+  remove(data: FindOneByOrgDto) {
+    return super.softDeleteByOrg(data);
+  }
+
+  restore(data: FindOneByOrgDto) {
+    return super.restoreByOrg(data);
   }
 }

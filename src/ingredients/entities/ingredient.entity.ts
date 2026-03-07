@@ -1,5 +1,11 @@
-import { Product } from 'src/products/entities/product.entity';
-import { Column, Entity, ManyToMany, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('ingredients')
 export class Ingredient {
@@ -7,11 +13,20 @@ export class Ingredient {
   id: string;
 
   @Column({ type: 'uuid' })
-  restaurantId: string;
+  organizationId: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @ManyToMany(() => Product, (product) => product.ingredients)
-  products?: Product[];
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date | null;
 }

@@ -1,45 +1,43 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
-import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { PaginationDto } from 'src/common';
+import { BaseService } from 'src/common/services/base.service';
+import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
 
 @Injectable()
-export class CategoriesService {
-  constructor(@InjectRepository(Category) private readonly categoryRepository: Repository<Category>
-) {}
-  async create(createCategoryDto: CreateCategoryDto) {
-    const { name, restaurantId } = createCategoryDto;
-    try {
-      const existingCategory = await this.categoryRepository.findOne({
-        where: { name, restaurantId }
-      });
-
-      if (existingCategory) {
-        RpcExceptionHelper.duplicate('Category');
-      }
-      return await this.categoryRepository.save(createCategoryDto);
-    } catch (error) {
-      RpcExceptionHelper.handle(error);  
-    }
-    
+export class CategoriesService extends BaseService<Category> {
+  constructor(
+    @InjectRepository(Category)
+    repo: Repository<Category>,
+  ) {
+    super(repo, 'Category');
+  }
+  create(createDto: CreateCategoryDto) {
+    return super.create(createDto);
   }
 
-  findAll() {
-    return `This action returns all categories`;
+  findAll(paginationDto: PaginationDto) {
+    return super.findAllByOrg(paginationDto);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  findOne(data: FindOneByOrgDto) {
+    return super.findOneByOrg(data);
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
+  update(dto: UpdateCategoryDto) {
+    return super.updateByOrg(dto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  remove(data: FindOneByOrgDto) {
+    return super.softDeleteByOrg(data);
+  }
+
+  restore(data: FindOneByOrgDto) {
+    return super.restoreByOrg(data);
   }
 }
+

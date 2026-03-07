@@ -3,21 +3,23 @@ import 'dotenv/config';
 
 const envSchema = z
   .object({
-    NODE_ENV: z
-      .enum(['development', 'production', 'test']),
+    NODE_ENV: z.enum(['development', 'production', 'test']),
     PORT: z.coerce.number().default(3000),
     DB_PORT: z.coerce.number().default(5432),
     DB_HOST: z.string(),
     POSTGRES_USER: z.string(),
     POSTGRES_PASSWORD: z.string(),
     POSTGRES_DB: z.string(),
-    NATS_SERVERS: z
+    RABBITMQ_URL: z
       .string()
-      .transform((val) => val.split(',').map((s) => s.trim()))
-      .refine((arr) => Array.isArray(arr) && arr.every((s) => !!s), {
-        message:
-          'NATS_SERVERS must be a comma-separated list of non-empty strings',
+      .url()
+      .refine((val) => val.startsWith('amqp://'), {
+        message: 'RABBITMQ_URL must be a valid amqp:// URL',
       }),
+
+    RABBITMQ_QUEUE: z.string().min(1, 'RABBITMQ_QUEUE cannot be empty'),
+    REDIS_HOST: z.string(),
+    REDIS_PORT: z.coerce.number().default(6379),
   })
   .required();
 
@@ -39,5 +41,8 @@ export const envs = {
   postgresUser: parsedEnv.data.POSTGRES_USER,
   postgresPassword: parsedEnv.data.POSTGRES_PASSWORD,
   postgresDb: parsedEnv.data.POSTGRES_DB,
-  natsServers: parsedEnv.data.NATS_SERVERS,
+  rabbitmqUrl: parsedEnv.data.RABBITMQ_URL,
+  rabbitmqQueue: parsedEnv.data.RABBITMQ_QUEUE,
+  redisHost: parsedEnv.data.REDIS_HOST,
+  redisPort: parsedEnv.data.REDIS_PORT,
 };

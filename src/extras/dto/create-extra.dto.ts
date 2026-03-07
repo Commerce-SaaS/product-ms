@@ -1,21 +1,22 @@
-import { IsUUID, IsString, IsNumber, IsBoolean, IsOptional, IsArray } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  Min,
+} from 'class-validator';
 
 export class CreateExtraDto {
   @IsUUID()
-  restaurantId: string;
+  organizationId: string;
 
   @IsString()
   name: string;
 
+  @IsOptional()
   @IsNumber()
-  price: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isAvailable?: boolean;
-
-  @IsOptional()
-  @IsArray()
-  @IsUUID('all', { each: true })
-  categoryIds?: string[];
+  @Min(0)
+  price?: number; 
 }

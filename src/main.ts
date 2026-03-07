@@ -1,7 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { MicroserviceOptions, RpcException, Transport } from '@nestjs/microservices';
+import {
+  MicroserviceOptions,
+  RpcException,
+  Transport,
+} from '@nestjs/microservices';
 import { envs } from './config';
 
 async function bootstrap() {
@@ -10,14 +14,18 @@ async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
     {
-      transport: Transport.NATS,
+      transport: Transport.RMQ,
       options: {
-        servers: envs.natsServers,
-        raw: false,
+        urls: [envs.rabbitmqUrl],
+        queue: envs.rabbitmqQueue,
+        queueOptions: {
+          durable: true,
+        },
       },
     },
   );
 
+  // Global Pipes for validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

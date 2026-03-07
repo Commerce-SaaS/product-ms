@@ -1,16 +1,26 @@
 import { Type } from 'class-transformer';
-import { IsOptional, IsPositive } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class PaginationDto {
+  @IsUUID()
+  organizationId: string;
 
-  @IsPositive()
+  @IsBoolean()
   @IsOptional()
-  @Type(() => Number)
-  page?: number = 1;
-
-  @IsPositive()
+  @Type(() => Boolean)
+  withDeleted?: boolean;
+  
   @IsOptional()
+  @Min(0)
   @Type(() => Number)
-  limit?: number = 10;
+  offset?: number;
 
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  limit?: number;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
 }
