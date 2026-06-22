@@ -25,6 +25,9 @@ export class ProductResponseDto {
   id: string;
   name: string;
   price: number;
+  reservedStock: number;
+  lowStockThreshold: number;
+  trackStock: boolean;
   isActive: boolean;
   image: { url: string | null; key: string | null };
   availability: string;

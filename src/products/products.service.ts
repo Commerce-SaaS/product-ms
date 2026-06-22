@@ -1,10 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
-import { PaginationDto } from 'src/common';
 import { BaseService } from 'src/common/services/base.service';
 import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
 import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
@@ -20,8 +19,6 @@ import { PaginationProductDto } from './dto/paginationProduct.dto';
 
 @Injectable()
 export class ProductsService extends BaseService<Product> {
-  logger = new Logger(ProductsService.name);
-
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -417,9 +414,14 @@ export class ProductsService extends BaseService<Product> {
       name: product.name,
       price: Number(product.price),
       stock: product.stock,
+      reservedStock: product.reservedStock,
+      lowStockThreshold: product.lowStockThreshold,
+      trackStock: product.trackStock,
       description: product.description,
       availability: product.availability,
       isActive: product.isActive,
+      deletedAt: product.deletedAt,
+      ui: product.ui,
       image: {
         url: product.imageUrl || null,
         key: product.imageKey || null,
@@ -434,22 +436,22 @@ export class ProductsService extends BaseService<Product> {
 
       tags:
         product.tags?.map((pt) => ({
-          id: pt.tag.id,
-          name: pt.tag.name,
+          id: pt.tag?.id ?? pt.id,
+          name: pt.tag?.name ?? pt.name,
         })) ?? [],
 
       ingredients:
         product.ingredients?.map((pi) => ({
-          id: pi.ingredient.id,
-          name: pi.ingredient.name,
+          id: pi.ingredient?.id ?? pi.id,
+          name: pi.ingredient?.name ?? pi.name,
           quantity: pi.quantity,
         })) ?? [],
 
       extras:
         product.extras?.map((pe) => ({
-          id: pe.extra.id,
-          name: pe.extra.name,
-          price: Number(pe.extra.price),
+          id: pe.extra?.id ?? pe.id,
+          name: pe.extra?.name ?? pe.name,
+          price: Number(pe.extra?.price ?? pe.price),
         })) ?? [],
     };
 

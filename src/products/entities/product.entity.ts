@@ -15,6 +15,7 @@ import {
   Index,
   DeleteDateColumn,
 } from 'typeorm';
+import { ProductUiDto } from '../dto/create-product.dto';
 
 @Entity('products')
 @Index(['organizationId', 'name'], { unique: true })
@@ -28,11 +29,28 @@ export class Product {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: {
+      from: (value: string) => parseFloat(value),
+      to: (value: number) => value,
+    },
+  })
   price: number;
 
-  @Column({ type: 'int', nullable: true })
-  stock?: number;
+  @Column({ default: 0 })
+  stock: number;
+
+  @Column({ default: 0 })
+  reservedStock: number; // stock reservado por órdenes pendientes
+
+  @Column({ nullable: true })
+  lowStockThreshold?: number; // alerta cuando stock baja de este número
+
+  @Column({ type: 'boolean', default: true })
+  trackStock: boolean; // algunos productos no necesitan control de stock
 
   @Column({ type: 'text', nullable: true })
   description?: string;
@@ -46,6 +64,9 @@ export class Product {
     default: ProductAvailability.AVAILABLE,
   })
   availability: ProductAvailability;
+
+  @Column({ type: 'jsonb', nullable: true })
+  ui?: ProductUiDto;
 
   @Column({ type: 'text', nullable: true })
   imageUrl?: string;

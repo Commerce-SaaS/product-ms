@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 
 @Entity('extras')
+@Unique(['organizationId', 'name'])
 export class Extra {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -18,7 +20,16 @@ export class Extra {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: {
+      from: (value: string) => parseFloat(value),
+      to: (value: number) => value,
+    },
+  })
   price: number;
 
   @Column({ type: 'boolean', default: true })

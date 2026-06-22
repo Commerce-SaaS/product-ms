@@ -6,6 +6,6 @@ export class UpdateExtraDto extends PartialType(CreateExtraDto) {
   @IsUUID()
   organizationId: string;
 
-  @IsString()
+  @IsUUID()
   id: string;
 }

@@ -8,8 +8,36 @@ import {
   Length,
   IsEnum,
   IsObject,
+  IsHexColor,
+  IsBoolean,
+  IsInt,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ProductAvailability } from 'src/common/enums/product-availability.enum';
+
+export class ProductUiDto {
+  @IsOptional()
+  @IsHexColor()
+  backgroundColor?: string;
+
+  @IsOptional()
+  @IsHexColor()
+  textColor?: string;
+
+  @IsOptional()
+  @IsString()
+  badge?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  highlight?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
 
 export class CreateProductDto {
   @IsUUID()
@@ -27,6 +55,20 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   stock?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  reservedStock?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  lowStockThreshold?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  trackStock?: boolean;
 
   @IsOptional()
   @IsEnum(ProductAvailability)
@@ -63,4 +105,9 @@ export class CreateProductDto {
   @IsArray()
   @IsObject({ each: true })
   ingredients?: { ingredientId: string; quantity: number }[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductUiDto)
+  ui?: ProductUiDto;
 }

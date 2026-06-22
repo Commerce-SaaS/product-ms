@@ -12,8 +12,8 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @MessagePattern(PRODUCT_PATTERNS.CREATE)
-  async create(@Payload() createProductDto: CreateProductDto) {
-    return await this.productsService.createProduct(createProductDto);
+  create(@Payload() createProductDto: CreateProductDto) {
+    return this.productsService.createProduct(createProductDto);
   }
 
   @MessagePattern(PRODUCT_PATTERNS.FIND_ALL)

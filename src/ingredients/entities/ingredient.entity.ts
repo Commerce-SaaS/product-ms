@@ -5,9 +5,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique
 } from 'typeorm';
 
 @Entity('ingredients')
+@Unique(['organizationId', 'name'])
 export class Ingredient {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,5 +30,5 @@ export class Ingredient {
   updatedAt: Date;
 
   @DeleteDateColumn()
-  deletedAt?: Date | null;
+  deletedAt?: Date;
 }

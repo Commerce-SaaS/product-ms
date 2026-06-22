@@ -12,11 +12,14 @@ type WithOrg = {
 };
 
 export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
-  logger = new Logger(BaseService.name);
+  protected readonly logger: Logger;
+
   protected constructor(
     protected readonly repo: Repository<T>,
     protected readonly entityName: string,
-  ) {}
+  ) {
+    this.logger = new Logger(entityName);
+  }
 
   // -------------------------
   // CREATE with soft-delete
@@ -44,7 +47,7 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
           (existing as any).isActive = true;
 
           const saved = await this.repo.save(existing);
-          const { deletedAt, createdAt, updatedAt, organizationId, ...rest } =
+          const { organizationId, ...rest } =
             saved as any;
           this.logger.log(`Restored ${this.entityName} id=${existing.id}`);
           return { ...rest };
@@ -59,7 +62,7 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       const entity = this.repo.create(dto as any);
       const saved = await this.repo.save(entity);
 
-      const { deletedAt, createdAt, updatedAt, organizationId, ...rest } =
+      const { organizationId, ...rest } =
         saved as any;
       this.logger.log(`${this.entityName} created`);
       return { ...rest };
@@ -110,7 +113,7 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       const [items, totalItems] = await query.getManyAndCount();
 
       const processedItems = items.map((item: any) => {
-        const { deletedAt, createdAt, updatedAt, organizationId, ...rest } =
+        const { organizationId, ...rest } =
           item;
         return { ...rest };
       });
@@ -149,8 +152,7 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       RpcExceptionHelper.notFound(this.entityName);
     }
 
-    const { deletedAt, createdAt, updatedAt, organizationId, ...rest } =
-      entity as any;
+    const { organizationId, ...rest } = entity as any;
     this.logger.log(`Fetched ${this.entityName} id=${id}`);
     return { ...rest };
   }
@@ -182,7 +184,9 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       this.logger.log(`Updated ${this.entityName} id=${id}`);
       return this.findOneByOrg({ id, organizationId, withDeleted: true });
     } catch (error) {
-      this.logger.error(`Error updating ${this.entityName} id=${id}: ${error.message}`);
+      this.logger.error(
+        `Error updating ${this.entityName} id=${id}: ${error.message}`,
+      );
       RpcExceptionHelper.handle(error);
     }
   }
@@ -196,24 +200,35 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       `Soft deleting ${this.entityName} id=${id} for org="${organizationId}"`,
     );
 
-    const result = await this.repo.update(
-      { id, organizationId } as any,
-      { isActive: false } as any,
-    );
+    const entity = await this.repo.findOneBy({ id, organizationId } as any);
 
-    if (!result.affected) {
+    if (!entity) {
       this.logger.warn(
         `Failed to soft delete ${this.entityName} id=${id} (not found)`,
       );
       RpcExceptionHelper.notFound(this.entityName);
     }
 
-    await this.repo.softDelete({ id, organizationId } as any);
-    this.logger.log(`Soft deleted ${this.entityName} id=${id}`);
+    try {
+      await this.repo.manager.transaction(async (manager) => {
+        await manager.update(
+          this.repo.target,
+          { id, organizationId },
+          { isActive: false } as any,
+        );
+        await manager.softDelete(this.repo.target, { id, organizationId });
+      });
 
-    return { message: `${this.entityName} deleted successfully` };
+      this.logger.log(`Soft deleted ${this.entityName} id=${id}`);
+      return { message: `${this.entityName} deleted successfully` };
+    } catch (error) {
+      this.logger.error(
+        `Failed to soft delete ${this.entityName} id=${id}`,
+        error.stack,
+      );
+      RpcExceptionHelper.handle(error);
+    }
   }
-
   // -------------------------
   // RESTORE
   // -------------------------
@@ -224,22 +239,37 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
       `Restoring ${this.entityName} id=${id} for org="${organizationId}"`,
     );
 
-    const result = await this.repo.restore({ id, organizationId } as any);
+    const entity = await this.repo.findOne({
+      where: { id, organizationId } as any,
+      withDeleted: true,
+    });
 
-    if (!result.affected) {
-      this.logger.warn(
-        `Failed to restore ${this.entityName} id=${id} (not found)`,
+    if (!entity) RpcExceptionHelper.notFound(this.entityName);
+
+    if (!(entity as any).deletedAt) {
+      RpcExceptionHelper.badRequestException(
+        `${this.entityName} is not deleted`,
       );
-      RpcExceptionHelper.notFound(this.entityName);
     }
 
-    await this.repo.update(
-      { id, organizationId } as any,
-      { isActive: true } as any,
-    );
+    try {
+      await this.repo.manager.transaction(async (manager) => {
+        await manager.restore(this.repo.target, { id, organizationId });
+        await manager.update(
+          this.repo.target,
+          { id, organizationId },
+          { isActive: true } as any,
+        );
+      });
 
-    this.logger.log(`Restored ${this.entityName} id=${id} and reactivated`);
-
-    return this.findOneByOrg({ id, organizationId, withDeleted: true });
+      this.logger.log(`Restored ${this.entityName} id=${id}`);
+      return this.findOneByOrg({ id, organizationId, withDeleted: false });
+    } catch (error) {
+      this.logger.error(
+        `Failed to restore ${this.entityName} id=${id}`,
+        error.stack,
+      );
+      RpcExceptionHelper.handle(error);
+    }
   }
 }

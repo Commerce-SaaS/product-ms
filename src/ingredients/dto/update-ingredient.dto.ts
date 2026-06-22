@@ -1,9 +1,9 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateIngredientDto } from './create-ingredient.dto';
-import { IsString, IsUUID } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
-    @IsString()
+    @IsUUID()
     id: string;
   
     @IsUUID()

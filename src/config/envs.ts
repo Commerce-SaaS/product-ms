@@ -20,6 +20,7 @@ const envSchema = z
     RABBITMQ_QUEUE: z.string().min(1, 'RABBITMQ_QUEUE cannot be empty'),
     REDIS_HOST: z.string(),
     REDIS_PORT: z.coerce.number().default(6379),
+    REDIS_PASS: z.string(),
   })
   .required();
 
@@ -45,4 +46,5 @@ export const envs = {
   rabbitmqQueue: parsedEnv.data.RABBITMQ_QUEUE,
   redisHost: parsedEnv.data.REDIS_HOST,
   redisPort: parsedEnv.data.REDIS_PORT,
+  redisPass: parsedEnv.data.REDIS_PASS,
 };

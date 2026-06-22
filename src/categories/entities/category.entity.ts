@@ -7,9 +7,12 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique
 } from 'typeorm';
+import { CategoryUiDto } from '../dto/create-category.dto';
 
 @Entity('category')
+@Unique(['organizationId', 'name'])
 export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -17,7 +20,7 @@ export class Category {
   @Column({ type: 'uuid' })
   organizationId: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -28,6 +31,9 @@ export class Category {
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  ui?: CategoryUiDto;
 
   @CreateDateColumn()
   createdAt: Date;

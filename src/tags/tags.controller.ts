@@ -12,8 +12,8 @@ export class TagsController {
   constructor(private readonly tagsService: TagsService) {}
 
   @MessagePattern(TAG_PATTERNS.CREATE)
-  async create(@Payload() createTagDto: CreateTagDto) {
-    return await this.tagsService.create(createTagDto);
+  create(@Payload() createTagDto: CreateTagDto) {
+    return this.tagsService.create(createTagDto);
   }
 
   @MessagePattern(TAG_PATTERNS.FIND_ALL)

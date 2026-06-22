@@ -7,9 +7,12 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique
 } from 'typeorm';
+import { TagUiDto } from '../dto/create-tag.dto';
 
 @Entity('tags')
+@Unique(['organizationId', 'name'])
 export class Tag {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,6 +28,9 @@ export class Tag {
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  ui?: TagUiDto;
 
   @CreateDateColumn()
   createdAt: Date;
