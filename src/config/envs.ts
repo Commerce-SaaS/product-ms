@@ -21,6 +21,9 @@ const envSchema = z
     REDIS_HOST: z.string(),
     REDIS_PORT: z.coerce.number().default(6379),
     REDIS_PASS: z.string(),
+    // Optional: port for the Prometheus /metrics HTTP sidecar (default 9100).
+    // Not required in .env — Zod substitutes the default when absent.
+    METRICS_PORT: z.coerce.number().default(9100),
   })
   .required();
 
@@ -47,4 +50,5 @@ export const envs = {
   redisHost: parsedEnv.data.REDIS_HOST,
   redisPort: parsedEnv.data.REDIS_PORT,
   redisPass: parsedEnv.data.REDIS_PASS,
+  metricsPort: parsedEnv.data.METRICS_PORT,
 };

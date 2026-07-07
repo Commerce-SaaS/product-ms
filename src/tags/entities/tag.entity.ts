@@ -7,12 +7,18 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  Unique
+  ManyToOne,
+  JoinColumn,
+  Index
 } from 'typeorm';
 import { TagUiDto } from '../dto/create-tag.dto';
+import { Category } from 'src/categories/entities/category.entity';
 
 @Entity('tags')
-@Unique(['organizationId', 'name'])
+@Index(['organizationId', 'name', 'categoryId'], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export class Tag {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,6 +31,16 @@ export class Tag {
 
   @OneToMany(() => ProductTag, (pt) => pt.tag)
   productTags: ProductTag[];
+
+  @Column({ type: 'uuid' })
+  categoryId: string;
+
+  @ManyToOne(() => Category, (category) => category.tags, {
+    onDelete: 'CASCADE',
+    nullable: false,
+  })
+  @JoinColumn({ name: 'categoryId' })
+  category?: Category;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

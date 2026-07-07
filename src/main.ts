@@ -7,9 +7,15 @@ import {
   Transport,
 } from '@nestjs/microservices';
 import { envs } from './config';
+import { startMetricsServer } from './metrics/metrics';
 
 async function bootstrap() {
   const logger = new Logger('ProductMS-Main');
+
+  // Start the Prometheus metrics HTTP server on a dedicated port (default 9100).
+  // This is a plain Node http.Server — completely separate from the RMQ transport.
+  // The RMQ microservice below continues to operate exactly as before.
+  await startMetricsServer(envs.metricsPort);
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,

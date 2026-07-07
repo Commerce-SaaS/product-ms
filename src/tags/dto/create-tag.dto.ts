@@ -37,6 +37,9 @@ export class CreateTagDto {
   @IsUUID()
   organizationId: string;
 
+  @IsUUID()
+  categoryId: string;
+
   @IsString()
   @Length(1, 100)
   name: string;

@@ -10,6 +10,7 @@ import {
   Unique
 } from 'typeorm';
 import { CategoryUiDto } from '../dto/create-category.dto';
+import { Tag } from 'src/tags/entities/tag.entity';
 
 @Entity('category')
 @Unique(['organizationId', 'name'])
@@ -28,6 +29,9 @@ export class Category {
 
   @OneToMany(() => Product, (product) => product.category)
   products?: Product[];
+
+  @OneToMany(() => Tag, (tag) => tag.category)
+  tags: Tag[];
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

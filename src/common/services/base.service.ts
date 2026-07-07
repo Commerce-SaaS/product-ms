@@ -21,6 +21,15 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
     this.logger = new Logger(entityName);
   }
 
+  protected getUniqueWhere(
+    dto: Partial<T> & { name: string; organizationId: string },
+  ): Record<string, any> {
+    return { name: dto.name, organizationId: dto.organizationId };
+  }
+
+  protected getFindAllRelations(): string[] {
+    return [];
+  }
   // -------------------------
   // CREATE with soft-delete
   // -------------------------
@@ -34,7 +43,7 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
 
     try {
       const existing = await this.repo.findOne({
-        where: { name, organizationId: dto.organizationId } as any,
+        where: this.getUniqueWhere(dto) as any,
         withDeleted: true,
       });
 
@@ -95,6 +104,9 @@ export abstract class BaseService<T extends ObjectLiteral & WithOrg> {
           organizationId,
         });
 
+      for (const rel of this.getFindAllRelations()) {
+        query.leftJoinAndSelect(`${this.entityName}.${rel}`, rel);
+      }
       if (search) {
         query.andWhere(`${this.entityName}.name ILIKE :search`, {
           search: `%${search}%`,

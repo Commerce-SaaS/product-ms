@@ -16,13 +16,20 @@ import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { PaginationProductDto } from './dto/paginationProduct.dto';
+import { CacheService } from 'src/common/cache/cache.service';
+import { dbQueryDuration } from 'src/metrics/metrics';
+
+const PRODUCT_TTL = 60;
+const PRODUCTS_LIST_TTL = 60;
 
 @Injectable()
 export class ProductsService extends BaseService<Product> {
+
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly dataSource: DataSource,
+    private readonly cache: CacheService,
   ) {
     super(productRepository, 'Product');
   }
@@ -146,6 +153,10 @@ export class ProductsService extends BaseService<Product> {
           return savedProduct;
         },
       );
+
+
+      await this.invalidateProduct(dto.organizationId, savedProduct.id); // 👈
+
       return await this.findOne({
         id: savedProduct.id,
         organizationId: dto.organizationId,
@@ -267,6 +278,8 @@ export class ProductsService extends BaseService<Product> {
         this.logger.log(`Product: "${dto.name}" updated`);
       });
 
+      await this.invalidateProduct(dto.organizationId, dto.id);
+
       return this.findOne({
         id: dto.id,
         organizationId: dto.organizationId,
@@ -283,20 +296,27 @@ export class ProductsService extends BaseService<Product> {
   // -------------------------
   async findAllProducts(paginationProductDto: PaginationProductDto) {
     try {
-      const {
-        withDeleted = false,
-        limit = 10,
-        offset = 0,
-        ingredient,
-        tag,
-        search,
-        category,
-        organizationId,
-      } = paginationProductDto;
-
+      const { organizationId } = paginationProductDto;
       if (!organizationId) {
         RpcExceptionHelper.badRequestException('organizationId is required');
       }
+
+      const ver = await this.cache.getVersion(this.versionKey(organizationId));
+      const key = this.listKey(organizationId, ver, paginationProductDto);
+
+      const cached = await this.cache.get<{
+        items: ProductResponseDto[];
+        totalItems: number;
+        totalPages: number;
+        currentPage: number;
+        hasMore: boolean;
+      }>(key);
+      if (cached) return cached;
+
+      const {
+        withDeleted = false, limit = 10, offset = 0,
+        ingredient, tag, search, category,
+      } = paginationProductDto;
 
       const query = this.repo
         .createQueryBuilder('product')
@@ -333,51 +353,68 @@ export class ProductsService extends BaseService<Product> {
 
       query.skip(offset).take(limit).orderBy('product.createdAt', 'DESC');
 
+      // Time only the DB round-trip; query building and result mapping are excluded.
+      const stopDbTimer = dbQueryDuration.startTimer({ entity: 'product', operation: 'findAll' });
       const [items, totalItems] = await query.getManyAndCount();
+      stopDbTimer();
 
-      const mappedItems = items.map((product) =>
-        this.transformProductStructure(product),
-      );
+      const mappedItems = items.map((p) => this.transformProductStructure(p));
 
-      return {
+      const result = {
         items: mappedItems,
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
         currentPage: Math.floor(offset / limit) + 1,
         hasMore: offset + limit < totalItems,
       };
+
+      await this.cache.set(key, result, PRODUCTS_LIST_TTL);
+      return result;
     } catch (error) {
       RpcExceptionHelper.handle(error);
     }
   }
 
   async findOne(data: FindOneByOrgDto): Promise<ProductResponseDto | null> {
-    const product = await super.findOneByOrg(data);
-
-    if (!product) {
-      return null;
+    if (data.withDeleted) {
+      // Admin / soft-deleted lookup — bypasses cache, time the DB call directly.
+      const stopDbTimer = dbQueryDuration.startTimer({ entity: 'product', operation: 'findOne' });
+      const product = await super.findOneByOrg(data);
+      stopDbTimer();
+      return product ? this.transformProductStructure(product) : null;
     }
 
-    return this.transformProductStructure(product);
+    const key = this.itemKey(data.organizationId, data.id);
+    const cached = await this.cache.get<ProductResponseDto>(key);
+    if (cached) return cached;
+
+    // Cache miss — time the DB round-trip.
+    const stopDbTimer = dbQueryDuration.startTimer({ entity: 'product', operation: 'findOne' });
+    const product = await super.findOneByOrg(data);
+    stopDbTimer();
+    if (!product) return null;
+
+    const dto = this.transformProductStructure(product);
+    await this.cache.set(key, dto, PRODUCT_TTL);
+    return dto;
   }
 
-  remove(data: FindOneByOrgDto) {
-    return super.softDeleteByOrg(data);
+  async remove(data: FindOneByOrgDto) {
+    const result = await super.softDeleteByOrg(data);
+    await this.invalidateProduct(data.organizationId, data.id);
+    return result;
   }
 
   async restore(data: FindOneByOrgDto) {
     const product = await super.restoreByOrg(data);
-
-    if (!product) {
-      return null;
-    }
-
+    await this.invalidateProduct(data.organizationId, data.id);
+    if (!product) return null;
     return this.transformProductStructure(product);
   }
 
   async validateIdsExist<T>(
     manager: EntityManager,
-    entityClass: { new (): T },
+    entityClass: { new(): T },
     ids: string[],
     organizationId: string,
     entityName: string,
@@ -429,9 +466,9 @@ export class ProductsService extends BaseService<Product> {
 
       category: product.category
         ? {
-            id: product.category.id,
-            name: product.category.name,
-          }
+          id: product.category.id,
+          name: product.category.name,
+        }
         : null,
 
       tags:
@@ -457,4 +494,33 @@ export class ProductsService extends BaseService<Product> {
 
     return productResponse;
   }
+
+  // CACHE
+
+  private itemKey(org: string, id: string) {
+    return `cache:product:${org}:${id}`;
+  }
+
+  private versionKey(org: string) {
+    return `cache:products:${org}:ver`;
+  }
+
+  private listKey(org: string, ver: number, dto: PaginationProductDto) {
+    const filters = JSON.stringify({
+      wd: dto.withDeleted ? 1 : 0,
+      off: dto.offset ?? 0,
+      lim: dto.limit ?? 10,
+      ing: dto.ingredient ?? null,
+      tag: dto.tag ?? null,
+      cat: dto.category ?? null,
+      q: dto.search ?? null,
+    });
+    return `cache:products:${org}:list:v${ver}:${filters}`;
+  }
+
+  private async invalidateProduct(org: string, id: string) {
+    await this.cache.del(this.itemKey(org, id));
+    await this.cache.bumpVersion(this.versionKey(org));
+  }
+
 }
