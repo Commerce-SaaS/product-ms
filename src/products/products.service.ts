@@ -468,6 +468,7 @@ export class ProductsService extends BaseService<Product> {
         ? {
           id: product.category.id,
           name: product.category.name,
+          countsTowardKitchenCapacity: product.category.countsTowardKitchenCapacity,
         }
         : null,
 

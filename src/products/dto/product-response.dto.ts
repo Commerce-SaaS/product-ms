@@ -8,6 +8,7 @@ export class CategoryResponseDto {
   id: string;
   name: string;
   description?: string;
+  countsTowardKitchenCapacity: boolean;
 }
 
 export class TagResponseDto {

@@ -39,4 +39,10 @@ export class CreateCategoryDto {
   @ValidateNested()
   @Type(() => CategoryUiDto)
   ui?: CategoryUiDto;
+
+  // Whether items in this category count toward a scheduled order's per-slot
+  // kitchen capacity (e.g. false for drinks / pre-prepared / display items).
+  @IsOptional()
+  @IsBoolean()
+  countsTowardKitchenCapacity?: boolean;
 }

@@ -39,6 +39,11 @@ export class Category {
   @Column({ type: 'jsonb', nullable: true })
   ui?: CategoryUiDto;
 
+  // Drinks / pre-prepared / display-case categories should be set to false.
+  // See PROD MIGRATION NOTE below.
+  @Column({ type: 'boolean', default: true })
+  countsTowardKitchenCapacity: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -48,3 +53,7 @@ export class Category {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
+
+// PROD MIGRATION NOTE (TypeORM synchronize handles dev automatically; do NOT
+// run synchronize in production):
+//   ALTER TABLE category ADD COLUMN "countsTowardKitchenCapacity" boolean NOT NULL DEFAULT true;
