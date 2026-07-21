@@ -75,6 +75,10 @@ export class CreateProductDto {
   availability?: ProductAvailability;
 
   @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
   @IsString()
   description?: string;
 

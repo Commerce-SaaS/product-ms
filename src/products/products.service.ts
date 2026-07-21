@@ -316,6 +316,7 @@ export class ProductsService extends BaseService<Product> {
       const {
         withDeleted = false, limit = 10, offset = 0,
         ingredient, tag, search, category,
+        availability, isActive, onlyDeleted, sortBy, sortOrder = 'DESC',
       } = paginationProductDto;
 
       const query = this.repo
@@ -349,9 +350,30 @@ export class ProductsService extends BaseService<Product> {
         });
       }
 
-      if (withDeleted) query.withDeleted();
+      if (availability) {
+        query.andWhere('product.availability = :availability', { availability });
+      }
 
-      query.skip(offset).take(limit).orderBy('product.createdAt', 'DESC');
+      if (isActive !== undefined) {
+        query.andWhere('product.isActive = :isActive', { isActive });
+      }
+
+      if (onlyDeleted) {
+        query.withDeleted().andWhere('product.deletedAt IS NOT NULL');
+      } else if (withDeleted) {
+        query.withDeleted();
+      }
+
+      const sortColumn: Record<string, string> = {
+        name: 'product.name',
+        price: 'product.price',
+        stock: 'product.stock',
+        createdAt: 'product.createdAt',
+      };
+      query
+        .skip(offset)
+        .take(limit)
+        .orderBy(sortColumn[sortBy ?? 'createdAt'], sortOrder);
 
       // Time only the DB round-trip; query building and result mapping are excluded.
       const stopDbTimer = dbQueryDuration.startTimer({ entity: 'product', operation: 'findAll' });
@@ -515,6 +537,11 @@ export class ProductsService extends BaseService<Product> {
       tag: dto.tag ?? null,
       cat: dto.category ?? null,
       q: dto.search ?? null,
+      avail: dto.availability ?? null,
+      active: dto.isActive ?? null,
+      onlyDel: dto.onlyDeleted ? 1 : 0,
+      sb: dto.sortBy ?? null,
+      so: dto.sortOrder ?? null,
     });
     return `cache:products:${org}:list:v${ver}:${filters}`;
   }
