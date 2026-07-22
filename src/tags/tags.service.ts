@@ -1,68 +1,116 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tag } from './entities/tag.entity';
-import { RpcException } from '@nestjs/microservices';
-import { RpcExceptionHelper } from 'src/common/helpers/rpc-exception.helper';
+import { PaginationDto } from 'src/common';
+import { BaseService } from 'src/common/services/base.service';
+import { FindOneByOrgDto } from 'src/common/dto/find-one-by-org.dto';
+import { CacheService } from 'src/common/cache/cache.service';
+import { dbQueryDuration } from 'src/metrics/metrics';
+
+const TAG_TTL = 600;
+const TAGS_LIST_TTL = 600;
 
 @Injectable()
-export class TagsService {
+export class TagsService extends BaseService<Tag> {
   constructor(
-    @InjectRepository(Tag) private readonly tagRepository: Repository<Tag>,
-  ) {}
+    @InjectRepository(Tag)
+    repo: Repository<Tag>,
+    private readonly cache: CacheService,
+  ) {
+    super(repo, 'Tag');
+  }
 
-  async create(createTagDto: CreateTagDto) {
-    const { name, categoryId, restaurantId } = createTagDto;
-    try {
-      // Validate if the tag already exists
-      const existingTag = await this.tagRepository.findOne({
-        where: { name, restaurantId },
-      });
+  protected getUniqueWhere(dto: any) {
+    return {
+      name: dto.name,
+      organizationId: dto.organizationId,
+      categoryId: dto.categoryId,
+    };
+  }
 
-      if (existingTag) {
-        RpcExceptionHelper.duplicate('Tag');
-      }
+  async create(createDto: CreateTagDto) {
+    const result = await super.create(createDto);
+    await this.invalidateTag(createDto.organizationId, (result as any).id);
+    return result;
+  }
 
-      // Validate if the category exists
-      const existingCategory = await this.tagRepository.findOne({
-        where: { id: categoryId },
-      });
+  async findAll(paginationDto: PaginationDto) {
+    const { organizationId } = paginationDto;
+    const ver = await this.cache.getVersion(this.versionKey(organizationId));
+    const key = this.listKey(organizationId, ver, paginationDto);
 
-      if (!existingCategory) {
-        RpcExceptionHelper.notFound('Category');
-      }
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
 
-      //
+    const stopDbTimer = dbQueryDuration.startTimer({ entity: 'tag', operation: 'findAll' });
+    const result = await super.findAllByOrg(paginationDto);
+    stopDbTimer();
+    await this.cache.set(key, result, TAGS_LIST_TTL);
+    return result;
+  }
 
-      // Prepare the tag to be saved
-      const tagToSave: any = {
-        name,
-        restaurantId,
-        category: categoryId ? { id: categoryId } : undefined,
-      };
-
-      // Save the tag
-      return await this.tagRepository.save(tagToSave);
-    } catch (error) {
-      RpcExceptionHelper.handle(error);
+  async findOne(data: FindOneByOrgDto) {
+    if (data.withDeleted) {
+      const stopDbTimer = dbQueryDuration.startTimer({ entity: 'tag', operation: 'findOne' });
+      const result = await super.findOneByOrg(data);
+      stopDbTimer();
+      return result;
     }
+
+    const key = this.itemKey(data.organizationId, data.id);
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
+
+    const stopDbTimer = dbQueryDuration.startTimer({ entity: 'tag', operation: 'findOne' });
+    const result = await super.findOneByOrg(data);
+    stopDbTimer();
+    if (!result) return null;
+
+    await this.cache.set(key, result, TAG_TTL);
+    return result;
   }
 
-  findAll() {
-    return `This action returns all tags`;
+  async update(dto: UpdateTagDto) {
+    const result = await super.updateByOrg(dto);
+    await this.invalidateTag(dto.organizationId, dto.id);
+    return result;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} tag`;
+  async remove(data: FindOneByOrgDto) {
+    const result = await super.softDeleteByOrg(data);
+    await this.invalidateTag(data.organizationId, data.id);
+    return result;
   }
 
-  update(id: number, updateTagDto: UpdateTagDto) {
-    return `This action updates a #${id} tag`;
+  async restore(data: FindOneByOrgDto) {
+    const result = await super.restoreByOrg(data);
+    await this.invalidateTag(data.organizationId, data.id);
+    return result;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} tag`;
+  private itemKey(org: string, id: string) {
+    return `cache:tag:${org}:${id}`;
+  }
+
+  private versionKey(org: string) {
+    return `cache:tags:${org}:ver`;
+  }
+
+  private listKey(org: string, ver: number, dto: PaginationDto) {
+    const filters = JSON.stringify({
+      wd: dto.withDeleted ? 1 : 0,
+      off: dto.offset ?? 0,
+      lim: dto.limit ?? 10,
+      q: dto.search ?? null,
+    });
+    return `cache:tags:${org}:list:v${ver}:${filters}`;
+  }
+
+  private async invalidateTag(org: string, id: string) {
+    await this.cache.del(this.itemKey(org, id));
+    await this.cache.bumpVersion(this.versionKey(org));
   }
 }

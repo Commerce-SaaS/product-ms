@@ -4,19 +4,44 @@ import {
   IsUUID,
   IsNumber,
   Min,
-  IsBoolean,
   IsArray,
   Length,
+  IsEnum,
+  IsObject,
+  IsHexColor,
+  IsBoolean,
+  IsInt,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ProductAvailability } from 'src/common/enums/product-availability.enum';
 
-export class CreateProductDto {
-  @IsUUID()
-  restaurantId: string;
+export class ProductUiDto {
+  @IsOptional()
+  @IsHexColor()
+  backgroundColor?: string;
+
+  @IsOptional()
+  @IsHexColor()
+  textColor?: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 100)
-  restaurantName?: string;
+  badge?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  highlight?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
+
+export class CreateProductDto {
+  @IsUUID()
+  organizationId: string;
 
   @IsString()
   @Length(1, 100)
@@ -32,8 +57,38 @@ export class CreateProductDto {
   stock?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  reservedStock?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  lowStockThreshold?: number;
+
+  @IsOptional()
   @IsBoolean()
-  isAvailable?: boolean;
+  trackStock?: boolean;
+
+  @IsOptional()
+  @IsEnum(ProductAvailability)
+  availability?: ProductAvailability;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imageKey?: string;
 
   //Relationships
   @IsUUID()
@@ -48,11 +103,15 @@ export class CreateProductDto {
   @IsOptional()
   @IsArray()
   @IsUUID('all', { each: true })
-  ingredients?: string[];
+  extras?: string[];
 
   @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
-  extras?: string[];
-}
+  @IsObject({ each: true })
+  ingredients?: { ingredientId: string; quantity: number }[];
 
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductUiDto)
+  ui?: ProductUiDto;
+}
