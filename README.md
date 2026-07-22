@@ -1,718 +1,281 @@
-# 📦 Product Microservice (`product-ms`)
+<h1 align="center">📦 Product Microservice · <code>product-ms</code></h1>
 
-A NestJS microservice responsible for managing the product catalog of the platform, including products, categories, tags, ingredients, extras, and their relationships.
+<p align="center">
+  <b>NestJS microservice</b> managing the product catalog — products, categories, tags, ingredients,<br/>
+  extras and their relationships. <i>The central catalog management system for all organizations.</i>
+</p>
 
-The service communicates exclusively through RabbitMQ and serves as the central catalog management system for all organizations.
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-TypeORM-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-catalog%20cache-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/Prometheus-metrics-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" />
+</p>
 
----
+<p align="center">
+  <img src="https://img.shields.io/badge/Transport-RabbitMQ%20only-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/Queue-products__queue-8A2BE2?style=flat-square" />
+  <img src="https://img.shields.io/badge/Metrics-/metrics%20:9100-41BF00?style=flat-square" />
+  <img src="https://img.shields.io/badge/Multi--tenant-yes-2E7D32?style=flat-square" />
+</p>
 
-# 📋 Table of Contents
+<br/>
 
-* Overview
-* Architecture
-* Features
-* Tech Stack
-* Getting Started
-* Environment Variables
-* RabbitMQ Patterns
-* Product Catalog Structure
-* Database Entities
-* Caching
-* Metrics & Observability
-* Dependencies
-* Development Notes
+## 🚀 Overview
 
----
+`product-ms` manages products, categories, tags, ingredients, extras, product relationships, catalog caching and catalog metrics. It is fully organization-scoped and designed for multi-tenant restaurant and commerce platforms.
 
-# 🚀 Overview
+> [!IMPORTANT]
+> The service communicates **exclusively through RabbitMQ** and serves as the central catalog for all organizations. Every order, POS, menu and storefront feature ultimately depends on data managed here.
 
-`product-ms` manages:
+> [!NOTE]
+> This is the **only** application service with real, code-level Prometheus instrumentation — its `/metrics` HTTP server on port `9100` is its single actual HTTP listener.
 
-* Products
-* Categories
-* Tags
-* Ingredients
-* Extras
-* Product relationships
-* Catalog caching
-* Catalog metrics
+<br/>
 
-The service is fully organization-scoped and designed for multi-tenant restaurant and commerce platforms.
+## 🏗️ Architecture
 
----
+```mermaid
+flowchart TB
+    GW["🌐 client-gateway"] -. "RabbitMQ RPC · products_queue" .-> PMS
 
-# 🏗️ Architecture
+    subgraph PMS["📦 product-ms"]
+        direction LR
+        A["Products"] ~~~ B["Categories"] ~~~ C["Tags"]
+        D["Ingredients"] ~~~ E["Extras"] ~~~ F["Cache · Metrics"]
+    end
 
-```text
-                   ┌──────────────────┐
-                   │   Client Gateway │
-                   └────────┬─────────┘
-                            │ RabbitMQ
-                            ▼
-
-┌─────────────────────────────────────────────┐
-│                 product-ms                  │
-├─────────────────────────────────────────────┤
-│ Products                                    │
-│ Categories                                  │
-│ Tags                                        │
-│ Ingredients                                 │
-│ Extras                                      │
-│ Catalog Relationships                       │
-│ Cache Layer                                 │
-│ Metrics                                     │
-└──────┬───────────────┬───────────────┬──────┘
-       │               │               │
-       ▼               ▼               ▼
- PostgreSQL         Redis        Prometheus
+    PMS --> PG[("🐘 PostgreSQL")]
+    PMS --> REDIS[("⚡ Redis · catalog cache")]
+    PMS -->|"/metrics :9100"| PROM["🔥 Prometheus"]
 ```
 
----
+<br/>
 
-# ✨ Features
+## ✨ Features
 
-* Product management
-* Category management
-* Tag management
-* Ingredient management
-* Extra management
-* Product-to-tag relationships
-* Product-to-ingredient relationships
-* Product-to-extra relationships
-* Redis caching
-* Prometheus metrics
-* Soft deletes
-* Multi-tenant architecture
+Product / category / tag / ingredient / extra management · product-to-tag, product-to-ingredient and product-to-extra relationships · Redis caching · Prometheus metrics · soft deletes · multi-tenant architecture.
 
----
+<br/>
 
-# 🛠 Tech Stack
+## 🛠️ Tech Stack
 
-| Category               | Technology      |
-| ---------------------- | --------------- |
-| Framework              | NestJS 11       |
-| Language               | TypeScript 5    |
-| Database               | PostgreSQL      |
-| ORM                    | TypeORM         |
-| Messaging              | RabbitMQ        |
-| Cache                  | Redis           |
-| Metrics                | Prometheus      |
-| Validation             | class-validator |
-| Environment Validation | Zod             |
-| Testing                | Jest            |
+| Category | Technology |
+|---|---|
+| Framework | NestJS 11 |
+| Language | TypeScript 5 |
+| Database | PostgreSQL |
+| ORM | TypeORM |
+| Messaging | RabbitMQ |
+| Cache | Redis |
+| Metrics | Prometheus |
+| Validation | class-validator |
+| Environment validation | Zod |
+| Testing | Jest |
 
----
+<br/>
 
-# ⚙️ Getting Started
+## ⚙️ Getting Started
 
-## Prerequisites
-
-* Node.js 20+
-* PostgreSQL
-* RabbitMQ
-* Redis
-
----
-
-## Installation
+**Prerequisites:** Node.js 20+, PostgreSQL, RabbitMQ, Redis.
 
 ```bash
 npm install
-
 cp .env.example .env
-
 npm run start:dev
 ```
 
----
+<details>
+<summary><b>📜 Available scripts</b></summary>
 
-## Available Scripts
+<br/>
 
 ```bash
 npm run build
-
-npm run start:dev
-npm run start:debug
-npm run start:prod
-
-npm run test
-npm run test:watch
-npm run test:cov
+npm run start:dev       # start:dev / start:debug / start:prod
+npm run test            # test / test:watch / test:cov
 npm run test:e2e
 ```
 
----
+</details>
 
-# 🌍 Environment Variables
+<br/>
 
-| Variable          | Required | Description                                      |
-| ----------------- | -------- | ------------------------------------------------ |
-| NODE_ENV          | ✅        | Environment                                      |
-| PORT              | ❌        | Logged only (not used for service communication) |
-| DB_HOST           | ✅        | PostgreSQL host                                  |
-| DB_PORT           | ❌        | PostgreSQL port                                  |
-| POSTGRES_USER     | ✅        | Database user                                    |
-| POSTGRES_PASSWORD | ✅        | Database password                                |
-| POSTGRES_DB       | ✅        | Database name                                    |
-| RABBITMQ_URL      | ✅        | RabbitMQ connection                              |
-| RABBITMQ_QUEUE    | ✅        | Main queue                                       |
-| REDIS_HOST        | ✅        | Redis host                                       |
-| REDIS_PORT        | ❌        | Redis port                                       |
-| REDIS_PASS        | ✅        | Redis password                                   |
-| METRICS_PORT      | ❌        | Prometheus metrics server                        |
+## 🌍 Environment Variables
 
----
+| Variable | Required | Description |
+|---|:---:|---|
+| `NODE_ENV` | ✅ | Environment |
+| `PORT` | ❌ | Logged only (not used for service communication) |
+| `DB_HOST` | ✅ | PostgreSQL host |
+| `DB_PORT` | ❌ | PostgreSQL port |
+| `POSTGRES_USER` | ✅ | Database user |
+| `POSTGRES_PASSWORD` | ✅ | Database password |
+| `POSTGRES_DB` | ✅ | Database name |
+| `RABBITMQ_URL` | ✅ | RabbitMQ connection |
+| `RABBITMQ_QUEUE` | ✅ | Main queue |
+| `REDIS_HOST` | ✅ | Redis host |
+| `REDIS_PORT` | ❌ | Redis port |
+| `REDIS_PASS` | ✅ | Redis password |
+| `METRICS_PORT` | ❌ | Prometheus metrics server |
 
-# 📨 RabbitMQ Patterns
+<br/>
 
-## Products
+## 📨 RabbitMQ Patterns
 
-| Pattern          |
-| ---------------- |
-| product.create   |
-| product.find_all |
-| product.find_one |
-| product.update   |
-| product.delete   |
-| product.restore  |
+Each catalog entity exposes the same CRUD-style set (`create`, `find_all`/`findAll`, `find_one`/`findOne`, `update`, `delete`, `restore`).
 
----
+<details>
+<summary><b>🍔 Core catalog patterns (Products · Categories · Tags · Ingredients · Extras)</b></summary>
 
-## Categories
+<br/>
 
-| Pattern            |
-| ------------------ |
-| categories.create  |
-| categories.findAll |
-| categories.findOne |
-| categories.update  |
-| categories.delete  |
-| categories.restore |
+| Group | Patterns |
+|---|---|
+| **Products** | `product.create` · `product.find_all` · `product.find_one` · `product.update` · `product.delete` · `product.restore` |
+| **Categories** | `categories.create` · `categories.findAll` · `categories.findOne` · `categories.update` · `categories.delete` · `categories.restore` |
+| **Tags** | `tag.create` · `tag.find_all` · `tag.find_one` · `tag.update` · `tag.delete` · `tag.restore` |
+| **Ingredients** | `ingredient.create` · `ingredient.find_all` · `ingredient.find_one` · `ingredient.update` · `ingredient.delete` · `ingredient.restore` |
+| **Extras** | `extra.create` · `extra.find_all` · `extra.find_one` · `extra.update` · `extra.delete` · `extra.restore` |
 
----
+</details>
 
-## Tags
+<details>
+<summary><b>🔗 Relationship patterns (Product Tags · Ingredients · Extras)</b></summary>
 
-| Pattern      |
-| ------------ |
-| tag.create   |
-| tag.find_all |
-| tag.find_one |
-| tag.update   |
-| tag.delete   |
-| tag.restore  |
+<br/>
 
----
+| Group | Patterns |
+|---|---|
+| **Product Tags** | `productTags.create` · `productTags.delete` |
+| **Product Ingredients** | `productIngredients.create` · `productIngredients.delete` |
+| **Product Extras** | `productExtras.create` · `productExtras.delete` |
 
-## Ingredients
+</details>
 
-| Pattern             |
-| ------------------- |
-| ingredient.create   |
-| ingredient.find_all |
-| ingredient.find_one |
-| ingredient.update   |
-| ingredient.delete   |
-| ingredient.restore  |
+<br/>
 
----
+## 🍔 Product Catalog Structure
 
-## Extras
+The catalog is built around products and their related entities:
 
-| Pattern        |
-| -------------- |
-| extra.create   |
-| extra.find_all |
-| extra.find_one |
-| extra.update   |
-| extra.delete   |
-| extra.restore  |
-
----
-
-## Product Tags
-
-| Pattern            |
-| ------------------ |
-| productTags.create |
-| productTags.delete |
-
----
-
-## Product Ingredients
-
-| Pattern                   |
-| ------------------------- |
-| productIngredients.create |
-| productIngredients.delete |
-
----
-
-## Product Extras
-
-| Pattern              |
-| -------------------- |
-| productExtras.create |
-| productExtras.delete |
-
----
-
-# 🍔 Product Catalog Structure
-
-The catalog is built around products and their related entities.
-
-```text
-Category
-   │
-   ▼
-Product
- ├── Tags
- ├── Ingredients
- └── Extras
+```mermaid
+flowchart TB
+    CAT["🗂️ Category"] --> PROD["🍕 Product"]
+    PROD --> TAGS["🏷️ Tags"]
+    PROD --> ING["🧅 Ingredients"]
+    PROD --> EX["➕ Extras"]
 ```
 
-Example:
+<details>
+<summary><b>🍕 Example: Pizza Margherita</b></summary>
+
+<br/>
 
 ```text
 Pizza Margherita
-│
 ├── Category: Pizza
-├── Tags:
-│     ├── Vegetarian
-│     └── Bestseller
-│
-├── Ingredients:
-│     ├── Mozzarella
-│     ├── Tomato Sauce
-│     └── Basil
-│
-└── Extras:
-      ├── Extra Cheese
-      └── Burrata
+├── Tags: Vegetarian · Bestseller
+├── Ingredients: Mozzarella · Tomato Sauce · Basil
+└── Extras: Extra Cheese · Burrata
 ```
 
----
+</details>
 
-# 🗄 Database Entities
+<br/>
 
-## Product
+## 🗄️ Database Entities
 
-Represents a catalog item.
+<details>
+<summary><b>View all entities</b></summary>
 
-Main fields:
+<br/>
 
-* organizationId
-* categoryId
-* name
-* description
-* price
-* stock
-* imageUrl
-* availability
-* isActive
+| Entity | Purpose | Main fields |
+|---|---|---|
+| **Product** | A catalog item | `organizationId`, `categoryId`, `name`, `description`, `price`, `stock`, `imageUrl`, `availability`, `isActive` |
+| **Category** | A group of products (Pizzas, Burgers, Desserts…) | `organizationId`, `name` |
+| **Tag** | Catalog labels (Vegetarian, Vegan, Spicy…) | `organizationId`, `categoryId`, `name` |
+| **Ingredient** | Product ingredients (Tomato, Mozzarella…) | `organizationId`, `name` |
+| **Extra** | Optional add-ons (Extra Cheese, Burrata, Bacon…) | `organizationId`, `name`, `price` |
+| **ProductTag** | Product ↔ Tag relationship | — |
+| **ProductIngredient** | Product ↔ Ingredient relationship | + `quantity` |
+| **ProductExtra** | Product ↔ Extra relationship | — |
 
----
+</details>
 
-## Category
+<br/>
 
-Represents a group of products.
-
-Examples:
-
-```text
-Pizzas
-Burgers
-Desserts
-Drinks
-```
-
-Main fields:
-
-* organizationId
-* name
-
----
-
-## Tag
-
-Represents catalog labels.
-
-Examples:
-
-```text
-Vegetarian
-Vegan
-Spicy
-Bestseller
-```
-
-Main fields:
-
-* organizationId
-* categoryId
-* name
-
----
-
-## Ingredient
-
-Represents product ingredients.
-
-Examples:
-
-```text
-Tomato
-Mozzarella
-Chicken
-Basil
-```
-
-Main fields:
-
-* organizationId
-* name
-
----
-
-## Extra
-
-Represents optional add-ons.
-
-Examples:
-
-```text
-Extra Cheese
-Burrata
-Bacon
-Double Meat
-```
-
-Main fields:
-
-* organizationId
-* name
-* price
-
----
-
-## ProductTag
-
-Relationship:
-
-```text
-Product
-   ↔
-Tag
-```
-
----
-
-## ProductIngredient
-
-Relationship:
-
-```text
-Product
-   ↔
-Ingredient
-```
-
-Additional field:
-
-```text
-quantity
-```
-
----
-
-## ProductExtra
-
-Relationship:
-
-```text
-Product
-   ↔
-Extra
-```
-
----
-
-# 🧠 Caching
+## 🧠 Caching
 
 The service implements Redis-based catalog caching.
 
-Cache format:
+| | |
+|---|---|
+| **Cache format** | `cache:<entity>:<organizationId>:<id>` |
+| **Examples** | `cache:product:org-1:123` · `cache:category:org-1:456` · `cache:product:org-1:list` |
 
-```text
-cache:<entity>:<organizationId>:<id>
+**Operations:** reads · writes · invalidation · versioning. **Benefits:** faster catalog queries, reduced database load, better scalability.
+
+```mermaid
+flowchart LR
+    A["🍕 Create product"] --> B["💾 Save to PostgreSQL"] --> C["🧹 Invalidate cache"] --> D["📥 Next read request"] --> E["♻️ Cache rebuild"] --> F["⚡ Redis storage"]
 ```
 
-Examples:
+<br/>
 
-```text
-cache:product:org-1:123
+## 📊 Metrics & Observability
 
-cache:category:org-1:456
+Prometheus-compatible metrics are exposed at `GET /metrics` on default port `9100`.
 
-cache:product:org-1:list
-```
+<details>
+<summary><b>Available metrics</b></summary>
 
-Supported operations:
+<br/>
 
-* Cache reads
-* Cache writes
-* Cache invalidation
-* Versioning
+- **Cache metrics** — `products_ms_cache_hits_total`, `products_ms_cache_misses_total` (cache hit ratio / efficiency).
+- **Database metrics** — `products_ms_db_query_duration_seconds` (query duration, DB performance, slow queries).
+- **Node.js metrics** — provided automatically via `collectDefaultMetrics()`: CPU usage, memory usage, event loop lag, garbage collection, process statistics.
 
-Benefits:
+</details>
 
-* Faster catalog queries
-* Reduced database load
-* Better scalability
+<br/>
 
----
+## 🔗 External Dependencies
 
-# 📊 Metrics & Observability
+| Dependency | Usage |
+|---|---|
+| 🐘 **PostgreSQL** | Stores products, categories, tags, ingredients, extras, relationship tables |
+| 🐇 **RabbitMQ** | Product CRUD, catalog communication, service integration (consumes from the configured queue) |
+| ⚡ **Redis** | Catalog caching, invalidation, versioning |
+| 🔥 **Prometheus** | Monitoring, metrics collection, performance analysis |
 
-The service exposes Prometheus-compatible metrics.
+<br/>
 
-Metrics endpoint:
+## 🏢 Multi-Tenant Architecture
 
-```text
-GET /metrics
-```
+All catalog entities are organization-scoped, guaranteeing complete data isolation between tenants — each organization has its own products, categories, tags, ingredients and extras.
 
-Default port:
+<br/>
 
-```text
-9100
-```
+## ⚠️ Development Notes / Limitations
 
----
+> [!WARNING]
+> Tracked openly and worth verifying before production.
 
-## Available Metrics
+- **Unimplemented relationship patterns:** these constants exist but have no handlers — `productTags.find_all` / `find_one` / `update`, `productExtras.find_all` / `find_one` / `update`, `productIngredients.find_all` / `find_one` / `update`.
+- **Env example:** `.env.example` is missing `REDIS_PASS`, which the application requires during startup validation.
+- **NATS dependency:** `nats` is included in `package.json` but has no active usage in the codebase.
+- **Docker configuration:** the Dockerfile exposes `4001`, but the service communicates exclusively through RabbitMQ — the only real HTTP listener is the Prometheus metrics server.
+- **Testing:** Jest is configured, but no active test files are currently present.
 
-### Cache Metrics
+<br/>
 
-```text
-products_ms_cache_hits_total
+## 📈 Service Scope
 
-products_ms_cache_misses_total
-```
+The central catalog service of the platform — product catalog, category, ingredient and extra management, product relationships, catalog caching and catalog observability. Every order, POS, menu and storefront feature ultimately depends on `product-ms`.
 
-Tracks:
-
-* Cache hit ratio
-* Cache efficiency
-
----
-
-### Database Metrics
-
-```text
-products_ms_db_query_duration_seconds
-```
-
-Tracks:
-
-* Query duration
-* Database performance
-* Slow queries
-
----
-
-### Node.js Metrics
-
-Provided automatically through:
-
-```text
-collectDefaultMetrics()
-```
-
-Including:
-
-* CPU usage
-* Memory usage
-* Event loop lag
-* Garbage collection
-* Process statistics
-
----
-
-# 🔗 External Dependencies
-
-## PostgreSQL
-
-Stores:
-
-* Products
-* Categories
-* Tags
-* Ingredients
-* Extras
-* Relationship tables
-
----
-
-## RabbitMQ
-
-Handles:
-
-* Product CRUD operations
-* Catalog communication
-* Service integration
-
-The service consumes messages through the configured RabbitMQ queue.
-
----
-
-## Redis
-
-Used for:
-
-* Catalog caching
-* Cache invalidation
-* Cache versioning
-
----
-
-## Prometheus
-
-Used for:
-
-* Monitoring
-* Metrics collection
-* Performance analysis
-
----
-
-# 🔄 Catalog Flow
-
-```text
-Create Product
-       │
-       ▼
-Save to PostgreSQL
-       │
-       ▼
-Invalidate Cache
-       │
-       ▼
-Next Read Request
-       │
-       ▼
-Cache Rebuild
-       │
-       ▼
-Redis Storage
-```
-
----
-
-# 🏢 Multi-Tenant Architecture
-
-All catalog entities are organization-scoped.
-
-```text
-Organization A
-    ├── Products
-    ├── Categories
-    ├── Tags
-    ├── Ingredients
-    └── Extras
-
-Organization B
-    ├── Products
-    ├── Categories
-    ├── Tags
-    ├── Ingredients
-    └── Extras
-```
-
-This guarantees complete data isolation between tenants.
-
----
-
-# ⚠️ Development Notes
-
-## Current Limitations
-
-### Unimplemented Relationship Patterns
-
-The following constants exist but currently have no handlers:
-
-```text
-productTags.find_all
-productTags.find_one
-productTags.update
-
-productExtras.find_all
-productExtras.find_one
-productExtras.update
-
-productIngredients.find_all
-productIngredients.find_one
-productIngredients.update
-```
-
----
-
-### Environment Example
-
-`.env.example` does not contain:
-
-```text
-REDIS_PASS
-```
-
-but the application requires it during startup validation.
-
----
-
-### NATS Dependency
-
-The repository includes:
-
-```text
-nats
-```
-
-as a dependency, but no active usage was found in the codebase.
-
----
-
-### Docker Configuration
-
-The Dockerfile exposes:
-
-```text
-4001
-```
-
-but the service itself communicates exclusively through RabbitMQ.
-
-The only real HTTP listener is the Prometheus metrics server.
-
----
-
-### Testing
-
-Jest is configured, but no active test files are currently present in the repository.
-
----
-
-# 📈 Service Scope
-
-`product-ms` is the central catalog service of the platform.
-
-Responsibilities include:
-
-* Product catalog management
-* Category management
-* Ingredient management
-* Extra management
-* Product relationships
-* Catalog caching
-* Catalog observability
-
-Every order, POS, menu, and storefront feature ultimately depends on data managed by `product-ms`.
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=80&section=footer" />
+</p>
